@@ -129,7 +129,7 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
 
             MPI_Bcast(&res, 1, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
 
-            /* Send values of points for stencial computation */
+            /* Send values of points for stencil computation */
             if (res > res_min && k < MAX_ITERATION) {
                 if (rank > 0)
                     MPI_Send(&u[0], 1, MPI_DOUBLE, rank - 1, k, MPI_COMM_WORLD);

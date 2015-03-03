@@ -53,8 +53,7 @@ int main(int argc, char **argv) {
         MPI_Recv(message, size, MPI_LONG, origin, tag, MPI_COMM_WORLD,
                  &status);
         gettimeofday(&finish, NULL);
-    }
-    else {
+    } else {
         MPI_Recv(message, size, MPI_LONG, origin, tag, MPI_COMM_WORLD,
                  &status);
         message[rank] = message[origin] + rank;
@@ -81,3 +80,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
