@@ -1,4 +1,4 @@
-all: int_ring array_ring
+all: int_ring array_ring jacobi-mpi
 int_ring: int_ring.c
 	mpicc int_ring.c -o int_ring
 array_ring: array_ring.c
