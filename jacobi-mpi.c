@@ -8,7 +8,7 @@
 #include <mpi.h>
 
 #define RESIDUAL_FACTOR 1e-6
-#define MAX_ITERATION 1e2
+#define MAX_ITERATION 10
 #define ROOT 0
 
 void jacobi(int N, int rank, int p, MPI_Status *status);
@@ -52,25 +52,29 @@ int main(int argc, char** argv)
     return 0;
 }
 
-/* Run the Jacobi method */
+/* The Jacobi method */
 void jacobi(int N, int rank, int p, MPI_Status *status) {
     /* Variables for the Jacobian method */
     double h = 1.0 / (N + 1);
     int n = N / p;  /* Size of sub-arrays */
     double u[N];  /* The complete array */
-    double u_i[n], u_i_old[n];  /* The sub-array of current rank and its copy */
+    double u_i[n], u_i_old[n];  /* The sub-array of current rank
+                                   and its copy */
     double u_prev = 0.0;  /* The last element of the previous sub-array */
+                          /* For the first sub-array, it is alwarys 0.0 */
     double u_next = 0.0;  /* The first element of the next sub-array */
+                          /* For the last sub-array, it is alwarys 0.0 */
     double res = residual(u, N, h);  /* The residual */
     double res_min = res * RESIDUAL_FACTOR;  /* The minimum residual */
     int i;  /* Dummy index */
     int k = 0;  /* Loop counter, also used as tag for MPI communcation */
-    double aui;  /* Placeholder for sum of a_ij * u_j */
+    double aui = 0.0;  /* Placeholder for sum of a_ij*u_j */
 
     /* Initialize u and u_i */
-    for (i = 0; i < N; ++i) u[i] = 0;
-    for (i = 0; i < n; ++i) u_i[i] = 0;
+    for (i = 0; i < N; ++i) u[i] = 0.0;
+    for (i = 0; i < n; ++i) u_i[i] = 0.0;
 
+    /* The Jacobi loop */
     while (res > res_min && k < MAX_ITERATION) {
         k++;
 
@@ -93,7 +97,7 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
 
             res = residual(u_i, N, h);
         } else {
-            /* Receive values of points for stencial computation */
+            /* Receive values of points for stencil computation */
             if (k > 1) {
                 if (rank > 0)
                     MPI_Recv(&u_prev, 1, MPI_DOUBLE, rank - 1, k - 1,
@@ -110,36 +114,37 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
 
                 if (i == 0)
                     aui = -(u_prev + u_i_old[i + 1]) / (h * h);
-                else if (i = n - 1)
+                else if (i == n - 1)
                     aui = -(u_i_old[i - 1] + u_next) / (h * h);
                 else
                     aui = -(u_i_old[i - 1] + u_i_old[i + 1]) / (h * h);
-            }
 
-            u_i[i] = (1 - aui) / 2 * h * h;
+                u_i[i] = (1 - aui) / 2 * h * h;
+            }
 
             /* At the root rank, gather the entire vector u,
              * and broadcast the residual*/
             MPI_Gather(u_i, n, MPI_DOUBLE, u, n, MPI_DOUBLE, ROOT,
                        MPI_COMM_WORLD);
 
-            if (rank == ROOT) {
+            if (rank == ROOT)
                 res = residual(u, N, h);
-            }
 
             MPI_Bcast(&res, 1, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
 
             /* Send values of points for stencil computation */
             if (res > res_min && k < MAX_ITERATION) {
                 if (rank > 0)
-                    MPI_Send(&u[0], 1, MPI_DOUBLE, rank - 1, k, MPI_COMM_WORLD);
+                    MPI_Send(&u_i[0], 1, MPI_DOUBLE, rank - 1, k,
+                             MPI_COMM_WORLD);
 
                 if (rank < p - 1)
-                    MPI_Send(&u[n - 1], 1, MPI_DOUBLE, rank + 1, k,
+                    MPI_Send(&u_i[n - 1], 1, MPI_DOUBLE, rank + 1, k,
                              MPI_COMM_WORLD);
             }
         }
 
+        /* Print residual at the end of each loop */
         if (rank == ROOT) printf("%.8f\n", res);
     }
 

@@ -23,3 +23,8 @@ mpirun -np p ./jacobi-mpi N
 ```
 where `N` and `p` are positive intergers, and `p` divides `N`.
 
+## Note
+To change the maximum allowed number of iterations in the parallelized Jacobi
+solver, modify the number in the `#define MAX_ITERATION` macro in the top
+portion of `jacobi-mpi.c`.
+
