@@ -1,8 +1,6 @@
 # HPC Homework 1
 Homework 1, High Performance Computing (NYU Spring 2015)
 
-*(Still in progress)*
-
 ## Compile the programs
 Simply enter `make` in a terminal.
 
@@ -25,6 +23,6 @@ where `N` and `p` are positive intergers, and `p` divides `N`.
 
 ## Note
 To change the maximum allowed number of iterations in the parallelized Jacobi
-solver, modify the number in the `#define MAX_ITERATION` macro in the top
+solver, modify the number in the `#define MAX_ITERATION` macro at the top
 portion of `jacobi-mpi.c`.
 
