@@ -64,7 +64,8 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
                           /* For the first sub-array, it is always 0.0 */
     double u_next = 0.0;  /* The first element of the next sub-array */
                           /* For the last sub-array, it is always 0.0 */
-    double res, res_min;  /* The residual and minimum allowed residual */
+    double res, res_min;  /* The residual and the minimum allowed
+                             residual */
     int i;  /* Dummy index */
     int k = 0;  /* Loop counter, also used as tag for MPI communcation */
     double aui = 0.0;  /* Placeholder for sum of a_ij*u_j */
@@ -73,7 +74,7 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
     for (i = 0; i < N; ++i) u[i] = 0.0;
     for (i = 0; i < n; ++i) u_i[i] = 0.0;
 
-    /* Compute the initial residual and minimum allowed residual */
+    /* Compute the initial residual and the minimum allowed residual */
     res = residual(u, N, h);
     res_min = res * RESIDUAL_FACTOR;
 
