@@ -61,9 +61,9 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
     double u_i[n], u_i_old[n];  /* The sub-array of current rank
                                    and its copy */
     double u_prev = 0.0;  /* The last element of the previous sub-array */
-                          /* For the first sub-array, it is alwarys 0.0 */
+                          /* For the first sub-array, it is always 0.0 */
     double u_next = 0.0;  /* The first element of the next sub-array */
-                          /* For the last sub-array, it is alwarys 0.0 */
+                          /* For the last sub-array, it is always 0.0 */
     double res, res_min;  /* The residual and minimum allowed residual */
     int i;  /* Dummy index */
     int k = 0;  /* Loop counter, also used as tag for MPI communcation */
