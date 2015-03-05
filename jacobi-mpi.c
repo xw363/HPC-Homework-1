@@ -57,9 +57,9 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
     /* Variables for the Jacobian method */
     double h = 1.0 / (N + 1);
     int n = N / p;  /* Size of sub-arrays */
-    double u[N];  /* The complete array */
-    double u_i[n], u_i_old[n];  /* The sub-array of current rank
-                                   and its copy */
+    double *u;  /* The complete array */
+    double *u_i, *u_i_old;  /* The sub-array of current rank
+                                     and its copy */
     double u_prev = 0.0;  /* The last element of the previous sub-array */
                           /* For the first sub-array, it is always 0.0 */
     double u_next = 0.0;  /* The first element of the next sub-array */
@@ -70,7 +70,10 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
     int k = 0;  /* Loop counter, also used as tag for MPI communcation */
     double aui = 0.0;  /* Placeholder for sum of a_ij*u_j */
 
-    /* Initialize u and u_i */
+    /* Initialize u, u_i, and u_i_old */
+    u = (double*) malloc(N * sizeof(double));
+    u_i = (double*) malloc(n * sizeof(double));
+    u_i_old = (double*) malloc(n * sizeof(double));
     for (i = 0; i < N; ++i) u[i] = 0.0;
     for (i = 0; i < n; ++i) u_i[i] = 0.0;
 
@@ -165,6 +168,11 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
                     1.0 - res / (res_min / RESIDUAL_FACTOR));
         printf("Number of iterations: %d\n", k);
     }
+
+    /* Clean up */
+    free(u);
+    free(u_i);
+    free(u_i_old);
 }
 
 /* Compute residual ||A*u-f|| */
