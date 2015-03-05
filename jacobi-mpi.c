@@ -64,7 +64,7 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
                           /* For the first sub-array, it is alwarys 0.0 */
     double u_next = 0.0;  /* The first element of the next sub-array */
                           /* For the last sub-array, it is alwarys 0.0 */
-    double res, res_min;  /* The residual and minimum allowed resudual */
+    double res, res_min;  /* The residual and minimum allowed residual */
     int i;  /* Dummy index */
     int k = 0;  /* Loop counter, also used as tag for MPI communcation */
     double aui = 0.0;  /* Placeholder for sum of a_ij*u_j */
