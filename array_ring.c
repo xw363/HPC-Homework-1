@@ -9,12 +9,15 @@
 int main(int argc, char **argv) {
     int rank, size, tag = 99;
     int origin, destination;  /* Origin and destination of message */
-    long* message;  /* Message in the ring */
-    int N;  /* Number of times to pass the message */
+    long N;  /* Total number of times to pass message */
+    long n;  /* Number of times to pass message in current rank */
+    long* message;  /* The message array */
+    long current_index;  /* Current index in message array */
     struct timeval start, finish;  /* Times that the message communication
                                       starts and finishes */
     double total_time;  /* Total communication time */
     char* ptr;  /* Dummy pointer for strtol() */
+    long i;  /* Dummy index */
     MPI_Status status;
 
     MPI_Init(&argc, &argv);
@@ -33,46 +36,60 @@ int main(int argc, char **argv) {
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-    message = malloc(size * sizeof(long));
+    /* Set number of times to pass message in current rank */
+    n = N / size;
+    if (rank < N % size)
+        n++;
 
     /* Set origin and destination of message */
     origin = (rank + size - 1) % size;
     destination = (rank + 1) % size;
 
+    /* Initialize message */
+    message = malloc(N * sizeof(long));
+    if (rank == 0) {
+        for (i = 0; i < N; ++i) {
+            message[i] = 0;
+        }
+    }
+
+    /* Mark start time */
+    gettimeofday(&start, NULL);
+
     /* Receive and send message */
-    if (rank == 0) {
-        /*
-         * Rank 0 initiates and terminates the message communication.
-         * It first sends 0 to the next rank, and then wait and receive the
-         * message from the last rank.
-         * Timing is also done here.
-         */
-        message[0] = 0;
-        gettimeofday(&start, NULL);
-        MPI_Send(message, size, MPI_LONG, destination, tag, MPI_COMM_WORLD);
-        MPI_Recv(message, size, MPI_LONG, origin, tag, MPI_COMM_WORLD,
-                 &status);
-        gettimeofday(&finish, NULL);
-    } else {
-        MPI_Recv(message, size, MPI_LONG, origin, tag, MPI_COMM_WORLD,
-                 &status);
-        message[rank] = message[origin] + rank;
-        MPI_Send(message, size, MPI_LONG, destination, tag, MPI_COMM_WORLD);
+    for (i = 0; i < n; ++i) {
+        current_index = i * size + rank;
+
+        if (rank == 0 && i == 0) {
+            /* Send the first message */
+            MPI_Send(message, N, MPI_LONG, destination, tag,
+                     MPI_COMM_WORLD);
+        } else if (i == n - 1 && (rank + 1) % size == (N % size)) {
+            /* Receive the last message */
+            MPI_Recv(message, N, MPI_LONG, origin, tag, MPI_COMM_WORLD,
+                     &status);
+            printf("Rank %d received %ld from rank %d\n", rank,
+                   message[current_index - 1], origin);
+        } else {
+            /* Regular cases */
+            MPI_Recv(message, N, MPI_LONG, origin, tag, MPI_COMM_WORLD,
+                     &status);
+            printf("Rank %d received %ld from rank %d\n", rank,
+                   message[current_index - 1], origin);
+
+            message[current_index] = message[current_index - 1] + rank;
+
+            MPI_Send(message, N, MPI_LONG, destination, tag,
+                     MPI_COMM_WORLD);
+        }
     }
 
-    /* Print communication time after the last message is received */
-    if (rank == 0) {
-        printf("Final message array:\n");
-
-        int i;
-        for (i = 0; i < size; ++i)
-            printf("%ld\n", message[i]);
-
-        total_time = finish.tv_sec - start.tv_sec
-                     + (finish.tv_usec - start.tv_usec) / 1e6;
-        printf("Total communication time: %.8f seconds\n", total_time);
-        printf("Average communication time: %.8f seconds\n", total_time / size);
-    }
+    /* Mark finish time and get communication time */
+    gettimeofday(&finish, NULL);
+    total_time = finish.tv_sec - start.tv_sec
+                 + (finish.tv_usec - start.tv_usec) / 1e6;
+    printf("Rank %d communication time: %.8f seconds\n", rank,
+           total_time);
 
     free(message);
 
@@ -80,4 +97,3 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-

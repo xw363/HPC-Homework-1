@@ -8,16 +8,16 @@
 #include <mpi.h>
 
 #define RESIDUAL_FACTOR 1e-6
-#define MAX_ITERATION 10
 #define ROOT 0
 
-void jacobi(int N, int rank, int p, MPI_Status *status);
+void jacobi(int N, int rank, int p, int num_iteration, MPI_Status *status);
 double residual(double* u, int N, double h);
 
 int main(int argc, char** argv)
 {
-    int N;  /* N - size of u; */
+    int N;  /* size of u; */
     int p, rank;  /* p - number of processes */
+    int num_iteration;  /* Number of iterations */
     char* ptr;  /* Dummy pointer for strtol() */
     MPI_Status status;
 
@@ -27,25 +27,30 @@ int main(int argc, char** argv)
     MPI_Comm_size(MPI_COMM_WORLD, &p);
 
     /* Get command line argument */
-    if (argc != 2) {
-        printf("You need to enter exactly one positive integer as "
+    if (argc != 3) {
+        printf("You need to enter exactly two positive integers as "
                "argument\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-    if ((N = strtol(argv[1], &ptr, 10)) <= 0) {
-        printf("Your argument should be a positive integer.\n");
+    if ((N = (int) strtol(argv[1], &ptr, 10)) <= 0) {
+        printf("Your first argument should be a positive integer.\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    if ((num_iteration = (int) strtol(argv[2], &ptr, 10)) <= 0) {
+        printf("Your second argument should be a positive integer.\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     if (N % p) {
-        printf("Your argument should be a multiple of number of"
+        printf("Your first argument should be a multiple of number of"
                " available processor cores.\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
     /* Run the Jacobi method */
-    jacobi(N, rank, p, &status);
+    jacobi(N, rank, p, num_iteration, &status);
 
     MPI_Finalize();
 
@@ -53,13 +58,14 @@ int main(int argc, char** argv)
 }
 
 /* The Jacobi method */
-void jacobi(int N, int rank, int p, MPI_Status *status) {
+void jacobi(int N, int rank, int p, int num_iteration, MPI_Status *status)
+{
     /* Variables for the Jacobian method */
     double h = 1.0 / (N + 1);
     int n = N / p;  /* Size of sub-arrays */
-    double *u;  /* The complete array */
-    double *u_i, *u_i_old;  /* The sub-array of current rank
-                                     and its copy */
+    double u[N];  /* The complete array */
+    double u_i[n], u_i_old[n];  /* The sub-array of current rank
+                                   and its copy */
     double u_prev = 0.0;  /* The last element of the previous sub-array */
                           /* For the first sub-array, it is always 0.0 */
     double u_next = 0.0;  /* The first element of the next sub-array */
@@ -70,10 +76,7 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
     int k = 0;  /* Loop counter, also used as tag for MPI communcation */
     double aui = 0.0;  /* Placeholder for sum of a_ij*u_j */
 
-    /* Initialize u, u_i, and u_i_old */
-    u = (double*) malloc(N * sizeof(double));
-    u_i = (double*) malloc(n * sizeof(double));
-    u_i_old = (double*) malloc(n * sizeof(double));
+    /* Initialize u and u_i */
     for (i = 0; i < N; ++i) u[i] = 0.0;
     for (i = 0; i < n; ++i) u_i[i] = 0.0;
 
@@ -82,7 +85,7 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
     res_min = res * RESIDUAL_FACTOR;
 
     /* The Jacobi loop */
-    while (res > res_min && k < MAX_ITERATION) {
+    while (res > res_min && k < num_iteration) {
         k++;
 
         memcpy(u_i_old, u_i, sizeof(double) * n);
@@ -140,7 +143,7 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
             MPI_Bcast(&res, 1, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
 
             /* Send values of points for stencil computation */
-            if (res > res_min && k < MAX_ITERATION) {
+            if (res > res_min && k < num_iteration) {
                 if (rank > 0)
                     MPI_Send(&u_i[0], 1, MPI_DOUBLE, rank - 1, k,
                              MPI_COMM_WORLD);
@@ -168,11 +171,6 @@ void jacobi(int N, int rank, int p, MPI_Status *status) {
                     1.0 - res / (res_min / RESIDUAL_FACTOR));
         printf("Number of iterations: %d\n", k);
     }
-
-    /* Clean up */
-    free(u);
-    free(u_i);
-    free(u_i_old);
 }
 
 /* Compute residual ||A*u-f|| */
@@ -198,4 +196,3 @@ double residual(double* u, int N, double h)
 
     return res;
 }
-

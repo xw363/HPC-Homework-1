@@ -9,12 +9,14 @@
 int main(int argc, char **argv) {
     int rank, size, tag = 99;
     int origin, destination;  /* Origin and destination of message */
-    long message_in, message_out;  /* Message in the ring */
-    int N;  /* Number of times to pass the message */
+    long N;  /* Total number of times to pass message */
+    long n;  /* Number of times to pass message in current rank */
+    long message;  /* Message */
     struct timeval start, finish;  /* Times that the message communication
                                       starts and finishes */
     double total_time;  /* Total communication time */
     char* ptr;  /* Dummy pointer for strtol() */
+    long i;  /* Dummy index */
     MPI_Status status;
 
     MPI_Init(&argc, &argv);
@@ -33,43 +35,56 @@ int main(int argc, char **argv) {
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
+    /* Set number of times to pass message in current rank */
+    n = N / size;
+    if (rank < N % size)
+        n++;
+
     /* Set origin and destination of message */
     origin = (rank + size - 1) % size;
     destination = (rank + 1) % size;
 
+    /* Set the first message */
+    if (rank == 0)
+        message = 0;
+
+    /* Mark start time */
+    gettimeofday(&start, NULL);
+
     /* Receive and send message */
-    if (rank == 0) {
-        /*
-         * Rank 0 initiates and terminates the message communication.
-         * It first sends 0 to the next rank, and then wait and receive the
-         * message from the last rank.
-         * Timing is also done here.
-         */
-        message_out = 0;
-        gettimeofday(&start, NULL);
-        MPI_Send(&message_out, 1, MPI_LONG, destination, tag, MPI_COMM_WORLD);
-        MPI_Recv(&message_in, 1, MPI_LONG, origin, tag, MPI_COMM_WORLD,
-                 &status);
-        gettimeofday(&finish, NULL);
-    } else {
-        MPI_Recv(&message_in, 1, MPI_LONG, origin, tag, MPI_COMM_WORLD,
-                 &status);
-        message_out = message_in + rank;
-        MPI_Send(&message_out, 1, MPI_LONG, destination, tag, MPI_COMM_WORLD);
+    for (i = 0; i < n; ++i) {
+        if (rank == 0 && i == 0) {
+            /* Send the first message */
+            MPI_Send(&message, 1, MPI_LONG, destination, tag,
+                     MPI_COMM_WORLD);
+        } else if (i == n - 1 && (rank + 1) % size == (N % size)) {
+            /* Receive the last message */
+            MPI_Recv(&message, 1, MPI_LONG, origin, tag, MPI_COMM_WORLD,
+                     &status);
+            printf("Rank %d received %ld from rank %d\n", rank, message,
+                   origin);
+        } else {
+            /* Regular cases */
+            MPI_Recv(&message, 1, MPI_LONG, origin, tag, MPI_COMM_WORLD,
+                     &status);
+            printf("Rank %d received %ld from rank %d\n", rank, message,
+                   origin);
+
+            message += rank;
+
+            MPI_Send(&message, 1, MPI_LONG, destination, tag,
+                     MPI_COMM_WORLD);
+        }
     }
 
-    printf("Rank %d received %ld from rank %d\n", rank, message_in, origin);
-
-    /* Print communication time after the last message is received */
-    if (rank == 0) {
-        total_time = finish.tv_sec - start.tv_sec
-                     + (finish.tv_usec - start.tv_usec) / 1e6;
-        printf("Total communication time: %.8f seconds\n", total_time);
-        printf("Average communication time: %.8f seconds\n", total_time / size);
-    }
+    /* Mark finish time and get communication time */
+    gettimeofday(&finish, NULL);
+    total_time = finish.tv_sec - start.tv_sec
+                 + (finish.tv_usec - start.tv_usec) / 1e6;
+    printf("Rank %d communication time: %.8f seconds\n", rank,
+           total_time);
 
     MPI_Finalize();
 
     return 0;
 }
-

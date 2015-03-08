@@ -7,22 +7,19 @@ Simply enter `make` in a terminal.
 ## Run the programs
 * For the integer version of ring communication, enter
 ```
-mpirun -np N ./int_ring N
+mpirun -np p ./int_ring N
 ```
-where N is a positive integer.
+where `p` and `N` are a positive integer.
 * For the array version of ring communication, enter
 ```
-mpirun -np N ./array_ring N
+mpirun -np p ./array_ring N
 ```
-where `N` is a positive integer.
+where `p` and `N` are a positive integer.
 * For the parallelized Jacobi solver, enter
 ```
-mpirun -np p ./jacobi-mpi N
+mpirun -np p ./jacobi-mpi N num_iteration
 ```
-where `N` and `p` are positive intergers, and `p` divides `N`.
+where `N`, `p`, `num_iteration` are positive intergers, and `p` divides `N`.
 
-## Note
-To change the maximum allowed number of iterations in the parallelized Jacobi
-solver, modify the number in the `#define MAX_ITERATION` macro at the top
-portion of `jacobi-mpi.c`.
-
+##Miscellaneous
+The file `Answer.txt` contains answers to non-coding questions.
