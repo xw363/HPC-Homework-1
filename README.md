@@ -15,7 +15,7 @@ where `p` and `N` are a positive integer.
 mpirun -np p ./array_ring N
 ```
 where `p` and `N` are a positive integer.
-* For the parallelized Jacobi solver, enter
+* For the parallelized Jacobi smoother, enter
 ```
 mpirun -np p ./jacobi-mpi N num_iteration
 ```
