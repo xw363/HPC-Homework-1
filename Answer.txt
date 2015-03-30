@@ -1,14 +1,11 @@
-1. On my system, running the array_ring program on 2 processor cores with
-an array of 250,000 long integers takes about 69.13 seconds. Each rank runs
-125,000 iterations, and each iteration has a send operation and receive
-operation (except the first and last ones). Therefore, the bandwidth is
-approximately
+1. I ran the array_ring program with an array of 250,000 long integers
+on crunchy1 (rank 0) and crunchy5 (rank 1), and it took about 4366.33
+second for both servers. Since each rank runs 125,000 iterations, and each
+iteration has a send operation and a receive operation, the bandwidth is 
 
-    2 MB * (2 * 125,000 * 2) / 69.13 sec = 14.47 GB/sec
-
-(Note: The test was done on Ubuntu, which uses base 10 byte units. Hence,
-on a x86-64 Ubuntu, 2 MB = 2 * 10^6 Bytes = 250,000 long integers.)
+    2 MB * (2 * 125,000 * 2) / 4366.33 sec = 229 MB/sec
 
 2. If we parallelize the Gauss-Seidel smoother, we need to wait for
 u_(i-1)^(k+1) to be updated before updating u_i^(k+1) for i>1. Therefore,
 the elements of u^(k+1) cannot be updated in parallel.
+
